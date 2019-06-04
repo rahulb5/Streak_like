@@ -1,0 +1,86 @@
+#include <stdio.h>
+#include <iostream>
+#include <edelweiss/JsonParser.h>
+#include <fstream>
+#include <string.h>
+
+using namespace std;
+
+double GetDouble(JsonObject jObject) {
+return atof(jObject.toString().c_str());
+}
+
+/*int find_value (JsonObject jObject, string key , string value , double num)
+{
+vector<JsonObject> arr = jObject[key][value];
+for(size_t itr = 0 ; itr < arr.size() ; itr++)
+{
+if(GetDouble(arr[itr]) == num)
+return itr;
+} 
+return -1;
+}*/
+
+int backtest (vector<JsonObject> price, vector<JsonObject> sma, string buy_cond , string sell_cond)
+{
+int flag = 0;
+
+return 0;
+}
+int main ()
+{
+std::ifstream inFile("7.txt", std::ifstream::binary);
+std::string fileContents((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
+
+//making JSON object from the data given
+JsonParser parser(fileContents);
+JsonObject reqObject = parser.getJsonObject();
+
+//extracting JSON object from the above JSON object which contains only the trade data
+JsonObject plotPoints = reqObject["data"]["pltPnts"];
+
+//making vector to get individual data point (still a JSON object)
+vector<JsonObject> script_open(plotPoints["open"]);
+vector<JsonObject> script_low(plotPoints["low"]);
+vector<JsonObject> script_high(plotPoints["high"]);
+vector<JsonObject> script_close(plotPoints["close"]);
+vector<JsonObject> script_vol(plotPoints["vol"]);
+vector<JsonObject> script_ltt(plotPoints["ltt"]);
+
+//Declaring variable to store indicator data 
+JsonObject techind = reqObject["data"]["tiOut"];
+vector<JsonObject> indPoints(techind[0]["rsltSet"][0]["vals"]); 
+
+//testing if above code works
+cout<<script_low.size()<<endl;
+cout<<GetDouble(script_open[4])<<endl;
+
+//making temporary file for observing the data
+ofstream outfile;
+outfile.open("hudco.txt"); 
+
+outfile<<"open\t\tclose\t\tlow\t\thigh\t\tvol\t\tltt\t\tsma"<<endl;
+
+int count; 
+
+for(size_t iter = 0 ; iter < script_low.size() ; iter++)
+{
+outfile<<GetDouble(script_open[iter])<<"\t";
+outfile<<GetDouble(script_close[iter])<<"\t";
+outfile<<GetDouble(script_low[iter])<<"\t";
+outfile<<GetDouble(script_high[iter])<<"\t";
+outfile<<GetDouble(script_vol[iter])<<"\t";
+outfile<<script_ltt[iter].toString().c_str()<<"\t";
+count = indPoints.size() + iter - script_low.size();
+if(count >= 0)
+outfile<<GetDouble(indPoints[count])<<endl;
+}
+cout<<endl<<count; 
+outfile.close();
+
+// int result = backtest(script_close, indPoints);
+
+
+return 0;
+
+}
