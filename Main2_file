@@ -1,0 +1,282 @@
+#include <stdio.h>
+#include <iostream>
+#include <edelweiss/JsonParser.h>
+#include <fstream>
+#include <string.h>
+
+using namespace std;
+
+
+//declaring class to store variables of trade
+class trade
+{
+  public: 
+          vector<int> transaction;
+          vector<int> investment;
+          vector<int> sell;
+          vector<string> entry;
+          vector<string> exit;
+          int pos, neg , profit;
+          
+          void summary()
+          {
+            
+            cout<<"Total Profit: "<<profit<<endl;
+            cout<<"Successful trades: "<<pos<<endl;
+            cout<<"Unsuccessful trades: "<<neg<<endl; 
+            cout<<"Success ratio: "<<(float)pos/(pos+neg)<<endl ;
+          }
+          
+          //constructor
+          trade()
+          {
+            pos = 0;
+            neg = 0;
+            profit = 0;
+          }
+};
+
+
+double GetDouble(JsonObject jObject) {
+	return atof(jObject.toString().c_str());
+}
+
+string assign (int a)
+{
+  if(a == 1)
+    return "open";
+  else if(a==2)
+    return "close";
+  else if (a==3)
+    return "high";
+  else
+    return "low";
+}
+
+string assign_cond(int a)
+{
+  if(a == 1)
+    return "greater than";
+  else if(a==2)
+    return "less than";
+  else if (a==3)
+    return "cross above";
+  else if (a == 4)
+    return "cross below";
+  else
+    return "equal to";
+}
+
+int condition (string cond, double price1 , double price2, double sma1 , double sma2) 
+{
+  if(cond.compare("cross above") == 0)
+  {
+    if(price1 > sma1 && price2 < sma2)
+      return 1;
+    else
+      return 0;
+  }
+  else if(cond.compare("cross below") == 0)
+  {
+    if(price1 < sma1 && price2 > sma2)
+      return 1;
+    else
+      return 0;
+  }
+  else if(cond.compare("equal to") == 0)
+  {
+    if(price1 == sma1)
+      return 1;
+    else
+      return 0;
+  }
+  else if(cond.compare("greater than") == 0)
+  {
+    if(price1 > sma1)
+      return 1;
+    else
+      return 0;
+  }
+  else if(cond.compare("less than") == 0)
+  {
+    if(price1 < sma1)
+      return 1;
+    else
+      return 0;
+  }
+  
+}
+trade backtest (vector<double> para1, vector<double> para2, string enter_cond, string exit_cond, vector<double> sma, vector<double>exit_sma, vector<string> ltt, int qty = 1)
+{
+  //to check if there is a standing position
+  int flag = 0;
+  //to account for the difference in the data points of price and sma
+  int count = para1.size() - sma.size();
+  int exit_count = para2.size() - exit_sma.size();
+  //to account for difference in size of the two sma
+  int diff_sma = exit_sma.size() - sma.size();
+  
+  int profit; 
+  
+  trade back;
+  
+  ofstream summary;
+  summary.open("summary.txt");
+  int c = 1 , o = 1;
+  
+  for(size_t iter = 1; (iter+count < para1.size()) && (iter + exit_count < para2.size()); iter++)
+  {
+    if(flag == 0 && condition(enter_cond, para1[iter+count],para1[iter+count-1], sma[iter], sma[iter+count -1]))
+    {
+      flag = 1; 
+      back.investment.push_back(qty*para1[iter+count]);
+      back.entry.push_back(ltt[iter+count]);
+      summary<<back.investment.back()<<"\t"<<sma[iter]<<"\t"<<back.entry.back()<<"\t";
+    }
+    else if(flag == 1 && (diff_sma+iter >= 0) && condition(exit_cond,para2[iter+exit_count],para2[iter+exit_count-1], exit_sma[iter+diff_sma], exit_sma[iter+ exit_count -1]))
+    {
+      flag = 0;
+      back.sell.push_back(qty*para2[iter+count]);
+      profit = back.sell.back() - back.investment.back();
+      back.profit += profit;
+      back.transaction.push_back(profit);
+      back.exit.push_back(ltt[iter+count]);
+      summary<<back.sell.back()<<"\t"<<sma[iter]<<"\t"<<back.exit.back()<<"\t"<<profit<<endl;
+            
+      if(profit>=0)
+        back.pos++;
+      else
+        back.neg++;
+    }
+  }
+  
+  if(flag == 1)
+  {
+    cout<<"\nStanding trade: "<<back.investment.back()<<endl;
+  }
+  summary.close();
+  
+  return back;
+}
+int main ()
+{
+  std::ifstream inFile("3.txt", std::ifstream::binary);
+	std::string fileContents((std::istreambuf_iterator<char>(inFile)), std::istreambuf_iterator<char>());
+
+  //making JSON object from the data given
+	JsonParser parser(fileContents);
+	JsonObject reqObject = parser.getJsonObject();
+  
+  //extracting JSON object from the above JSON object which contains only the trade data
+	JsonObject plotPoints = reqObject["data"]["pltPnts"];
+ 
+  //making vector to get individual data point (still a JSON object)
+	vector<JsonObject> script_open(plotPoints["open"]);
+	vector<JsonObject> script_low(plotPoints["low"]);
+	vector<JsonObject> script_high(plotPoints["high"]);
+	vector<JsonObject> script_close(plotPoints["close"]);
+  vector<JsonObject> script_vol(plotPoints["vol"]);
+  vector<JsonObject> script_ltt(plotPoints["ltt"]);
+  
+  string enter_cond , exit_cond  ,para1,para2;
+  int enter,exit ,cond1 , cond2;
+  
+  
+  
+  int enter_index,exit_index;
+  char buffer;
+  cout<<"Enter parameter 1: \n";
+  cout<<"1.Open\t2.Close\t3.High\t4.Low\n";
+  cin>>enter;
+  cout<<"Enter condition: \n";
+  cout<<"1.greater than\n2.less than\n3.cross above\n4.cross below\n5.equal to\n";
+  cin>>cond1; 
+  cout<<"Enter SMA: ";
+  cout<<"1.SMA 14\t2.SMA 100\n";
+  cin>>enter_index;
+  cout<<"Enter exit condition:\n";
+  cout<<"Enter parameter 2:\n";
+  cout<<"1.Open\t2.Close\t3.High\t4.Low\n";
+  cin>>exit;
+  cout<<"Enter condition: \n";
+  cout<<"1.greater than\n2.less than\n3.cross above\n4.cross below\n5.equal to\n";
+  cin>>cond2;
+  cout<<"Enter SMA: ";
+  cout<<"1.SMA 14\t2.SMA 100\n";
+  cin>>exit_index;
+  
+  para1 = assign(enter);
+  para2 = assign(exit);
+  enter_cond = assign_cond(cond1);
+  exit_cond = assign_cond(cond2);
+  
+  
+  vector<JsonObject> script_cond(plotPoints[para1]); 
+  vector<JsonObject> script_exit_cond(plotPoints[para2]);
+  //Declaring variable to store indicator data   
+  JsonObject techind = reqObject["data"]["tiOut"];
+  vector<JsonObject> indPoints(techind[enter_index-1]["rsltSet"][0]["vals"]);  
+  vector<JsonObject> exit_indPoints(techind[exit_index-1]["rsltSet"][0]["vals"]);
+  
+  //testing if above code works
+  cout<<script_low.size()<<endl;
+  cout<<GetDouble(script_open[4])<<endl;
+  //making temporary file for observing the data
+  ofstream outfile;
+  outfile.open("TCS.txt");  
+    
+  outfile<<"open\t\tclose\t\tlow\t\thigh\t\tvol\t\tltt\t\tsma"<<endl;
+    
+  int count_enter,count_exit; 
+  
+  vector<double> open,close,low,high,vol,sma,indPoints_d , para1_vector, para2_vector,exit_indPoints_d;
+  vector<string> ltt;
+    
+  for(size_t iter = 0 ; iter < script_low.size() ; iter++)
+  {
+      
+      //making a double vector for each data point type
+      open.push_back(GetDouble(script_open[iter]));
+      close.push_back(GetDouble(script_close[iter]));
+      low.push_back(GetDouble(script_low[iter]));
+      high.push_back(GetDouble(script_high[iter]));
+      vol.push_back(GetDouble(script_vol[iter]));
+      ltt.push_back(script_ltt[iter].toString().c_str());
+      para1_vector.push_back(GetDouble(script_cond[iter]));
+      
+      para2_vector.push_back(GetDouble(script_exit_cond[iter]));
+      
+      //printing in the file
+      outfile<<open.back()<<"\t";
+      outfile<<close.back()<<"\t";
+      outfile<<low.back()<<"\t";
+      outfile<<high.back()<<"\t";
+      outfile<<vol.back()<<"\t";
+      outfile<<ltt.back()<<"\t";
+      count_enter = indPoints.size() + iter - script_low.size();
+      count_exit = exit_indPoints.size() + iter -script_low.size();
+      
+     // cout<<"problem";
+      
+      //factoring in the different size of sma and price vector
+      if(count_enter >= 0)
+      {
+        //cout<<"problem";
+        indPoints_d.push_back(GetDouble(indPoints[count_enter]));
+        
+        outfile<<indPoints_d.back()<<endl;
+      }
+      if(count_exit >= 0)
+      {
+        exit_indPoints_d.push_back(GetDouble(exit_indPoints[count_exit]));
+      //  cout<<"problem here "<<count_exit<<endl;
+      }
+  }
+  
+  outfile.close();
+  trade test = backtest(para1_vector,para1_vector,enter_cond,exit_cond, indPoints_d,exit_indPoints_d,ltt);
+  test.summary();
+  
+  return 0;
+    
+}
