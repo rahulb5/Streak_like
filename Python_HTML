@@ -1,0 +1,3 @@
+print 'Content-type:text/html\n'
+//The above line is like a header for the browser to treat this Python file as a HTML page.
+//Now whatever you will print after this line will be treated as content of a HTML page.
