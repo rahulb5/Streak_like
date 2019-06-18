@@ -3,8 +3,8 @@ import json
 
 with open('3.json', 'r') as f:
   JSON_dict = json.load(f)
-
-for var1 in JSON_dict['data']['pltPnts']:
-  print var1['open']
-
-
+data = JSON_dict['data']
+pltPnts = data['pltPnts']
+open_points = pltPnts['open']
+for var1 in data['pltPnts']['open']:
+  print(var1)
