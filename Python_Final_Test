@@ -1,0 +1,25 @@
+import json
+
+
+
+
+class trade:
+          transaction=[]
+          investment=[]
+          sell=[]
+          entry_date=[]
+          exit_date=[]
+          pos=0
+          neg=0
+          profit=0
+     def summary():
+          {
+            
+            print "Total Profit: ",profit
+            print "Successful trades: ",pos
+            print "Unsuccessful trades: ",neg
+            print "Success ratio: ",(float)(pos/(pos+neg))
+          }
+          
+         
+         
