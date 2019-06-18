@@ -1,16 +1,10 @@
 import json
 
-with open('3.txt') as json_file:  
-    data = json.load(json_file)
-    for p in data['pltPnts']:
-        print('close: ' + p['close'] + ' ')
-        print('high: ' + p['high']+ ' ')
-        print('low: ' + p['low']+ ' ')
-        print('ltt: ' + p['ltt']+ ' ')
-        print('open: ' + p['open']+ ' ')
-        print('vol: ' + p['vol']+ ' ')
 
+with open('3.json', 'r') as f:
+  JSON_dict = json.load(f)
 
-
+for var1 in JSON_dict:
+  print(var1['pltPnts']['open'])
 
 
