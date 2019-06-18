@@ -5,6 +5,6 @@ with open('3.json', 'r') as f:
   JSON_dict = json.load(f)
 
 for var1 in JSON_dict:
-  print(var1['pltPnts']['open'])
+  print var1['open']
 
 
