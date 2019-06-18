@@ -4,7 +4,7 @@ import json
 with open('3.json', 'r') as f:
   JSON_dict = json.load(f)
 
-for var1 in JSON_dict:
+for var1 in JSON_dict['data']['pltPnts']:
   print var1['open']
 
 
